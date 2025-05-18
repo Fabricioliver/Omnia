@@ -9,6 +9,8 @@ using Ambev.DeveloperEvaluation.WebApi.Middleware;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Ambev.DeveloperEvaluation.ORM.Seed;
+using Ambev.DeveloperEvaluation.WebApi.Services;
 
 namespace Ambev.DeveloperEvaluation.WebApi;
 
@@ -51,6 +53,7 @@ public class Program
             });
 
             builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+			builder.Services.AddScoped<DomainEventLogger>();
 
             var app = builder.Build();
             app.UseMiddleware<ValidationExceptionMiddleware>();
@@ -69,6 +72,13 @@ public class Program
             app.UseBasicHealthChecks();
 
             app.MapControllers();
+			
+			
+			using (var scope = app.Services.CreateScope())
+			{
+				var context = scope.ServiceProvider.GetRequiredService<DefaultContext>();
+				DbInitializer.Seed(context);
+			}			
 
             app.Run();
         }
